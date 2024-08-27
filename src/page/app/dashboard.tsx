@@ -30,8 +30,12 @@ export function Dashboard() {
 
   useEffect(() => {
     handleLoadTaskList();
-    handleLoadTasks();
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    selectedTask = tasksList.find((task) => task.id === selectedTaskId)
+  },[selectedTaskId])
 
   const handleLoadTaskList = async () => {
     try {
@@ -41,7 +45,6 @@ export function Dashboard() {
       if (response.status == 200) {
         const result = await response.json();
         setTasksList(result);
-        console.log(result);
       }
     } catch (error) {
       console.error("Error loading task list:", error);
@@ -56,7 +59,6 @@ export function Dashboard() {
       if (response.status == 200) {
         const result = await response.json();
         setTasks(result);
-        console.log(result);
       }
     } catch (error) {
       console.error("Error loading tasks:", error);
@@ -67,7 +69,7 @@ export function Dashboard() {
     setListName(name);
   };
 
-  const selectedTask = tasksList.find((task) => task.id === selectedTaskId);
+  let selectedTask = tasksList.find((task) => task.id === selectedTaskId);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const taskListForm = z.object({
@@ -240,7 +242,7 @@ export function Dashboard() {
               setShowTasks(false);
             }}
           >
-            <option value="">Select a task</option>
+            <option value="">Selecione uma lista</option>
             {tasksList.map((task) => (
               <option key={task.id} value={task.id}>
                 {task.name}
@@ -251,7 +253,7 @@ export function Dashboard() {
       </div>
 
       {selectedTask && (
-        <div className="flex flex-col h-full w-full gap-6 mt-4">
+        <div className="flex flex-col h-full w-full gap-6 mt-4 bg-blue-50 p-10">
           <div className="space-y-4">
             <form onSubmit={handleSubmit(handleTaskForm)} className="space-y-4">
               <div className="space-y-2">
@@ -295,7 +297,10 @@ export function Dashboard() {
             <Button
               className="w-full px-4 py-2 m-2"
               type="button"
-              onClick={handleShowTasks}
+              onClick={() => {
+                handleShowTasks();
+                handleLoadTasks();
+              }}
             >
               Tarefas
             </Button>
@@ -328,7 +333,10 @@ export function Dashboard() {
                   <Button
                     disabled={isSubmitting}
                     className="w-full px-4 py-2 m-2"
-                    onClick={() => handleDeleteTask(task.id.toString())}
+                    onClick={() => {
+                      handleDeleteTask(task.id.toString());
+                      handleLoadTasks();
+                    }}
                   >
                     Deletar
                   </Button>
