@@ -154,6 +154,7 @@ export function Dashboard() {
     } catch {}
   };
 
+
   // Popup form handling
   const handleCreateTask = async (taskName: string) => {
     try {
@@ -180,6 +181,25 @@ export function Dashboard() {
     setShowPopup(!showPopup);
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACK_URL}/task/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.status === 200) {
+        toast.success("Task deleted successfully!");
+        //setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+      } else {
+        toast.error("Failed to delete task.");
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("An error occurred while deleting the task.");
+    }
+  };
 
 
 
@@ -282,6 +302,13 @@ export function Dashboard() {
                       />
                     </label>
                   </div>
+                  <Button
+                    disabled={isSubmitting}
+                    className="w-full px-4 py-2 m-2"
+                    onClick={() => handleDeleteTask(task.id.toString())}
+                  >
+                    Deletar
+                  </Button>
                   <Button
                     disabled={isSubmitting}
                     className="w-full px-4 py-2 m-2"
