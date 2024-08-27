@@ -201,7 +201,30 @@ export function Dashboard() {
     }
   };
 
+  const handleUpdateTask = async (taskId: string, updatedTask: Partial<Task>) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACK_URL}/task`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: taskId,
+          name: updatedTask.name,
+          completed: updatedTask.completed,
+        }),
+      });
 
+      if (response.status === 200) {
+        toast.success("Task updated successfully!");
+        
+      } else {
+        toast.error("Failed to update task.");
+      }
+    } catch  {
+      toast.error("An error occurred while updating the task.");
+    }
+  };
 
   return (
     <>
@@ -281,7 +304,7 @@ export function Dashboard() {
           {showTasks && (
             <div className="space-y-4 mt-4">
               {tasks.map((task) => (
-                <form
+                <div
                   key={task.id}
                   className="p-4 border border-gray-300 rounded-lg bg-white shadow space-y-4"
                 >
@@ -312,11 +335,11 @@ export function Dashboard() {
                   <Button
                     disabled={isSubmitting}
                     className="w-full px-4 py-2 m-2"
-                    type="submit"
+                    onClick={() =>handleUpdateTask(task.id.toString(), { name: task.name, completed: task.completed })}
                   >
                     Salvar
                   </Button>
-                </form>
+                </div>
               ))}
             </div>
           )}
