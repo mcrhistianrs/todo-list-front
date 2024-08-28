@@ -27,6 +27,8 @@ export function Dashboard() {
   const [showTasks, setShowTasks] = useState<boolean>(false);
   const [listName, setListName] = useState<string>("");
   const [showPopup, setShowPopup] = useState<boolean>(false); // State to manage popup visibility
+   
+  const [previewColor, setPreviewColor] = useState<string | null>(null);
 
   useEffect(() => {
     handleLoadTaskList();
@@ -75,6 +77,7 @@ export function Dashboard() {
   const taskListForm = z.object({
     name: z.string().min(1),
     id: z.number(),
+    color:z.string()
   });
   type TaskListForm = z.infer<typeof taskListForm>;
 
@@ -88,9 +91,10 @@ export function Dashboard() {
     const taskId = selectedTaskId;
     const formData = {
       ...data,
+      //@ts-expect-error("color is  required")
+      color: previewColor ?? selectedTask.color,
       id: taskId,
     };
-
     try {
       const response = await fetch(`${import.meta.env.VITE_BACK_URL}/list`, {
         method: "PATCH",
@@ -103,7 +107,8 @@ export function Dashboard() {
         const result = await response.json();
         if (result.name == formData.name) {
           toast.success("Salvo com sucesso!");
-          window.location.reload();
+          setPreviewColor(null);
+          handleLoadTaskList();
         }
       } else {
         toast.error("Erro ao salvar");
@@ -227,7 +232,10 @@ export function Dashboard() {
       toast.error("An error occurred while updating the task.");
     }
   };
-
+  const handleColorPreview = (color: string) => {
+    setPreviewColor(color); // Set the preview color
+  };
+  
   return (
     <>
       <Helmet title="Dashboard" />
@@ -240,6 +248,7 @@ export function Dashboard() {
             onChange={(e) => {
               setSelectedTaskId(e.target.value);
               setShowTasks(false);
+              handleLoadTaskList();
             }}
           >
             <option value="">Selecione uma lista</option>
@@ -253,7 +262,7 @@ export function Dashboard() {
       </div>
 
       {selectedTask && (
-        <div className="flex flex-col h-full w-full gap-6 mt-4 bg-blue-50 p-10">
+        <div className={`flex flex-col h-full w-full gap-6 mt-4 ${previewColor != null ? previewColor: selectedTask.color} p-10`}>
           <div className="space-y-4">
             <form onSubmit={handleSubmit(handleTaskForm)} className="space-y-4">
               <div className="space-y-2">
@@ -272,9 +281,11 @@ export function Dashboard() {
                 />
               </div>
               <div>
-                <Button className="w-full m-2" type="submit">
-                  Cor
-                </Button>
+                <div className="flex justify-center">
+                  <Button className="m-2 bg-stone-500 border-white border-2" type="button"  onClick={() => handleColorPreview("bg-stone-500")} />
+                  <Button className="m-2 bg-yellow-300 border-white border-2" type="button"  onClick={() => handleColorPreview("bg-yellow-300")}/>
+                  <Button className="m-2 bg-sky-500 border-white border-2" type="button"  onClick={() => handleColorPreview("bg-sky-500")}/>
+                </div>
                 <Button
                   disabled={isSubmitting}
                   className="w-full m-2"
