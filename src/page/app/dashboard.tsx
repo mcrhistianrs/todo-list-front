@@ -26,8 +26,9 @@ export function Dashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showTasks, setShowTasks] = useState<boolean>(false);
   const [listName, setListName] = useState<string>("");
-  const [showPopup, setShowPopup] = useState<boolean>(false); // State to manage popup visibility
-   
+  const [showPopup, setShowPopup] = useState<boolean>(false); // State for list creation popup
+  const [showCreateListPopup, setShowCreateListPopup] = useState<boolean>(false); // State for new list popup
+
   const [previewColor, setPreviewColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,7 +36,6 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     selectedTask = tasksList.find((task) => task.id === selectedTaskId)
   },[selectedTaskId])
 
@@ -44,7 +44,7 @@ export function Dashboard() {
       const response = await fetch(
         `${import.meta.env.VITE_BACK_URL}/list/all/${userId}`
       );
-      if (response.status == 200) {
+      if (response.status === 200) {
         const result = await response.json();
         setTasksList(result);
       }
@@ -58,7 +58,7 @@ export function Dashboard() {
       const response = await fetch(
         `${import.meta.env.VITE_BACK_URL}/task/all/${selectedTaskId}`
       );
-      if (response.status == 200) {
+      if (response.status === 200) {
         const result = await response.json();
         setTasks(result);
       }
@@ -77,7 +77,7 @@ export function Dashboard() {
   const taskListForm = z.object({
     name: z.string().min(1),
     id: z.number(),
-    color:z.string()
+    color: z.string()
   });
   type TaskListForm = z.infer<typeof taskListForm>;
 
@@ -91,7 +91,7 @@ export function Dashboard() {
     const taskId = selectedTaskId;
     const formData = {
       ...data,
-      //@ts-expect-error("color is  required")
+      //@ts-expect-error("color is required")
       color: previewColor ?? selectedTask.color,
       id: taskId,
     };
@@ -103,12 +103,13 @@ export function Dashboard() {
         },
         body: JSON.stringify(formData),
       });
-      if (response.status == 200) {
+      if (response.status === 200) {
         const result = await response.json();
-        if (result.name == formData.name) {
+        if (result.name === formData.name) {
           toast.success("Salvo com sucesso!");
           setPreviewColor(null);
           handleLoadTaskList();
+          window.location.reload();
         }
       } else {
         toast.error("Erro ao salvar");
@@ -150,19 +151,18 @@ export function Dashboard() {
           },
         }
       );
-      if (response.status == 200) {
+      if (response.status === 200) {
         toast.success("Deletado com sucesso!");
         setSelectedTaskId(null);
         setListName("");
       } else {
         toast.error("Erro ao deletar");
       }
-    // eslint-disable-next-line no-empty
-    } catch {}
+    } catch (error) {
+      console.error("Error deleting task list:", error);
+    }
   };
 
-
-  // Popup form handling
   const handleCreateTask = async (taskName: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACK_URL}/task/create`, {
@@ -198,7 +198,7 @@ export function Dashboard() {
       });
       if (response.status === 200) {
         toast.success("Task deleted successfully!");
-        //setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+        handleLoadTasks(); // Refresh tasks after deletion
       } else {
         toast.error("Failed to delete task.");
       }
@@ -224,24 +224,48 @@ export function Dashboard() {
 
       if (response.status === 200) {
         toast.success("Task updated successfully!");
-        
+        handleLoadTasks(); // Refresh tasks after update
       } else {
         toast.error("Failed to update task.");
       }
-    } catch  {
+    } catch {
       toast.error("An error occurred while updating the task.");
     }
   };
+
   const handleColorPreview = (color: string) => {
     setPreviewColor(color); // Set the preview color
   };
-  
+
+  const handleCreateList = async (listName: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACK_URL}/list/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: listName, user:userId }),
+      });
+      if (response.status === 200) {
+        toast.success("List created successfully!");
+        setShowCreateListPopup(false);
+        handleLoadTaskList(); // Refresh the list after creation
+      } else {
+        toast.error("Error creating list");
+      }
+    } catch (error) {
+      console.error("Error creating list:", error);
+    }
+  };
+
+
+
   return (
     <>
       <Helmet title="Dashboard" />
-
+  
       <div className="grid grid-cols-4 gap-4 flex-1">
-        <div className="col-span-4">
+        <div className="col-span-3 ">
           <select
             className="w-full p-2 m-2 border border-gray-300 rounded-lg"
             value={selectedTaskId ?? ""}
@@ -258,11 +282,17 @@ export function Dashboard() {
               </option>
             ))}
           </select>
+          <Button
+            className="ml-2 px-4 py-2  text-white rounded-lg"
+            onClick={() => setShowCreateListPopup(true)}
+          >
+            Adicionar Lista
+          </Button>
         </div>
       </div>
-
+  
       {selectedTask && (
-        <div className={`flex flex-col h-full w-full gap-6 mt-4 ${previewColor != null ? previewColor: selectedTask.color} p-10`}>
+        <div className={`flex flex-col h-full w-full gap-6 mt-4 ${previewColor != null ? previewColor : selectedTask.color} p-10`}>
           <div className="space-y-4">
             <form onSubmit={handleSubmit(handleTaskForm)} className="space-y-4">
               <div className="space-y-2">
@@ -282,9 +312,9 @@ export function Dashboard() {
               </div>
               <div>
                 <div className="flex justify-center">
-                  <Button className="m-2 bg-stone-500 border-white border-2" type="button"  onClick={() => handleColorPreview("bg-stone-500")} />
-                  <Button className="m-2 bg-yellow-300 border-white border-2" type="button"  onClick={() => handleColorPreview("bg-yellow-300")}/>
-                  <Button className="m-2 bg-sky-500 border-white border-2" type="button"  onClick={() => handleColorPreview("bg-sky-500")}/>
+                  <Button className="m-2 bg-stone-500 border-white border-2" type="button" onClick={() => handleColorPreview("bg-stone-500")} />
+                  <Button className="m-2 bg-yellow-300 border-white border-2" type="button" onClick={() => handleColorPreview("bg-yellow-300")} />
+                  <Button className="m-2 bg-sky-500 border-white border-2" type="button" onClick={() => handleColorPreview("bg-sky-500")} />
                 </div>
                 <Button
                   disabled={isSubmitting}
@@ -316,7 +346,7 @@ export function Dashboard() {
               Tarefas
             </Button>
           </div>
-
+  
           {showTasks && (
             <div className="space-y-4 mt-4">
               {tasks.map((task) => (
@@ -354,7 +384,7 @@ export function Dashboard() {
                   <Button
                     disabled={isSubmitting}
                     className="w-full px-4 py-2 m-2"
-                    onClick={() =>handleUpdateTask(task.id.toString(), { name: task.name, completed: task.completed })}
+                    onClick={() => handleUpdateTask(task.id.toString(), { name: task.name, completed: task.completed })}
                   >
                     Salvar
                   </Button>
@@ -364,8 +394,8 @@ export function Dashboard() {
           )}
         </div>
       )}
-
-{showPopup && (
+  
+      {showPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
             <h2 className="text-xl font-semibold mb-4">Criar Nova Tarefa</h2>
@@ -399,7 +429,51 @@ export function Dashboard() {
                 </Button>
                 <Button
                   type="submit"
-                  className="px-4 py-2  text-white rounded-lg"
+                  className="px-4 py-2 text-white bg-blue-500 rounded-lg"
+                >
+                  Salvar
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+  
+      {showCreateListPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h2 className="text-xl font-semibold mb-4">Criar Nova Lista</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const listName = (e.target as any).listName.value;
+                if (listName) {
+                  handleCreateList(listName);
+                }
+              }}
+            >
+              <div className="space-y-4">
+                <Input
+                  id="listName"
+                  name="listName"
+                  type="text"
+                  placeholder="Nome da Lista"
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div className="mt-6 flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  className="px-4 py-2 bg-gray-300 rounded-lg"
+                  onClick={() => setShowCreateListPopup(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  className="px-4 py-2 text-white bg-blue-500 rounded-lg"
                 >
                   Salvar
                 </Button>
@@ -410,4 +484,4 @@ export function Dashboard() {
       )}
     </>
   );
-}
+}  
