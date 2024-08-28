@@ -22,8 +22,8 @@ export function SignIn() {
     handleSubmit,
     formState: { isSubmitting },
   } = useForm<SignInForm>()
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { userId, setUser } = useUserStore();
+   
+  const {  setUser } = useUserStore();
 
   async function handleSignIn(data: SignInForm) {
     try {
